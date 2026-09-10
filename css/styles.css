@@ -1,0 +1,19 @@
+@import url('./estilos.css');
+
+.question-field {
+	margin-top: 28px;
+	border-top: 1px solid rgba(255,255,255,.17);
+	padding-top: 4px;
+}
+
+.brand-fallback-label {
+	display: none !important;
+}
+
+#reading-copy {
+	margin: 0;
+	max-width: 680px;
+	color: var(--ivory);
+	white-space: pre-wrap;
+	font: 15px/1.65 'DM Sans', sans-serif;
+}

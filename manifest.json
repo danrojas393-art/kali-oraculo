@@ -1,0 +1,25 @@
+{
+  "name": "Kali Oráculo",
+  "short_name": "Kali",
+  "description": "Sinastría de pareja astro-cosmológica.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A060E",
+  "theme_color": "#0A060E",
+  "icons": [
+    {
+      "src": "./assets/logo-kali.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/logo-kali.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A060E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kali">
+  <link rel="apple-touch-icon" href="./assets/logo-kali.jpg">
+  <link rel="manifest" href="./manifest.json">
+  <title>Kali Oráculo | Sinastría de pareja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div id="watermark-bg" aria-hidden="true"></div>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+
+  <header class="site-header shell">
+    <a class="brand" href="./index.html" aria-label="Kali Oráculo, inicio">
+      <span class="brand-mark"><img src="./assets/logo-kali.jpg" alt="Logo de Kali Oráculo"></span>
+      <span class="brand-copy"><strong>KALI</strong><small>ORÁCULO</small></span>
+    </a>
+    <span class="header-note">Sinastría · edición 2026</span>
+  </header>
+
+  <main class="shell main-content">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">LECTURA ASTRO-COSMOLÓGICA</p>
+      <h1 id="page-title">Dos cielos.<br><em>Una órbita.</em></h1>
+      <p class="intro-text">Descubre la frecuencia que se activa cuando sus universos se encuentran.</p>
+    </section>
+
+    <section class="form-card glass-panel" aria-labelledby="form-title">
+      <div class="section-heading">
+        <span class="step-number">01</span>
+        <div><p class="eyebrow">DATOS DE LA PAREJA</p><h2 id="form-title">Traza sus coordenadas</h2></div>
+      </div>
+      <form id="synastry-form" novalidate>
+        <div class="person-grid">
+          <fieldset class="person-fieldset">
+            <legend>Persona uno</legend>
+            <label for="name-one">Nombre completo</label>
+            <input id="name-one" name="nameOne" type="text" autocomplete="name" placeholder="Ej. Valentina García" required>
+            <label for="date-one">Fecha de nacimiento</label>
+            <input id="date-one" name="dateOne" type="date" required>
+          </fieldset>
+          <fieldset class="person-fieldset">
+            <legend>Persona dos</legend>
+            <label for="name-two">Nombre completo</label>
+            <input id="name-two" name="nameTwo" type="text" autocomplete="name" placeholder="Ej. Emiliano López" required>
+            <label for="date-two">Fecha de nacimiento</label>
+            <input id="date-two" name="dateTwo" type="date" required>
+          </fieldset>
+        </div>
+        <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
+        <button class="primary-button" type="submit"><span>Generar sinastría</span><span aria-hidden="true">↗</span></button>
+        <p class="privacy-note"><span aria-hidden="true">✦</span> Tus coordenadas se usan solo para esta lectura.</p>
+      </form>
+    </section>
+
+    <section id="reading" class="reading-section glass-panel is-hidden" aria-live="polite" aria-labelledby="reading-title">
+      <div class="reading-topline"><p class="eyebrow">LECTURA DESBLOQUEADA</p><span class="status-dot">● disponible</span></div>
+      <h2 id="reading-title">La órbita de <span id="reading-names"></span></h2>
+      <div class="reading-content"><div class="compatibility-score"><span id="score">--</span><small>% resonancia</small></div><div><p id="reading-combination" class="combination"></p><pre id="reading-copy"></pre></div></div>
+      <div class="canvas-wrap"><canvas id="share-card" width="1080" height="1920" aria-label="Tarjeta de sinastría para Instagram Stories"></canvas></div>
+      <button id="download-card" class="secondary-button" type="button"><span aria-hidden="true">↓</span> Descargar tarjeta HD</button>
+    </section>
+  </main>
+
+  <footer class="site-footer shell"><span>KALI ORÁCULO</span><span>Hecho para mirar hacia adentro.</span></footer>
+
+  <div id="paywall" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
+    <div class="paywall glass-panel">
+      <button id="close-paywall" class="icon-button" type="button" aria-label="Cerrar">×</button>
+      <span class="paywall-symbol" aria-hidden="true">✦</span>
+      <p class="eyebrow">UMBRAL DE ACCESO</p>
+      <h2 id="paywall-title">Tu Sinastría Cosmobiológica de Pareja está lista.</h2>
+      <p class="paywall-lead">Desbloquéala por <strong>$50 MXN</strong></p>
+      <p class="paywall-detail">Tu lectura completa y tu tarjeta HD estarán disponibles al confirmar el acceso.</p>
+      <a id="stripe-button" class="primary-button button-link" href="#" rel="noopener"><span>Desbloquear por $50 MXN</span><span aria-hidden="true">↗</span></a>
+      <div class="vip-divider"><span>o entra con acceso VIP</span></div>
+      <form id="vip-form" class="vip-form">
+        <label class="sr-only" for="vip-code">Código de acceso VIP</label>
+        <input id="vip-code" type="text" autocomplete="off" placeholder="Escribe tu código" required>
+        <button class="secondary-button" type="submit">Validar código</button>
+      </form>
+      <p id="vip-feedback" class="vip-feedback" role="alert" aria-live="polite"></p>
+      <p class="secure-note">Acceso seguro · pago procesado por Stripe</p>
+    </div>
+  </div>
+
+  <script src="./js/canvas.js"></script>
+  <script src="./js/prompt.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
