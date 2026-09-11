@@ -99,6 +99,8 @@ function unlockReading(source) {
   generateAnalysis(couple).then((analysis) => {
     document.querySelector('#reading-copy').textContent = analysis.text;
     drawSynastryCard(document.querySelector('#share-card'), { ...couple, mysticalPhrase: analysis.mysticalPhrase });
+  }).catch(() => {
+    document.querySelector('#reading-copy').textContent = 'No fue posible obtener la lectura de Gemini. Inténtalo de nuevo.';
   });
 }
 
@@ -145,17 +147,16 @@ function getZodiacInfo(dateValue) {
 }
 
 async function generateAnalysis(couple) {
-  const prompt = SYSTEM_PROMPT_MASTER
-    .replace('{nombre1}', couple.nameOne)
-    .replace('{fecha1}', couple.dateOne)
-    .replace('{signo1}', couple.signOne)
-    .replace('{elemento1}', couple.elementOne)
-    .replace('{nombre2}', couple.nameTwo)
-    .replace('{fecha2}', couple.dateTwo)
-    .replace('{signo2}', couple.signTwo)
-    .replace('{elemento2}', couple.elementTwo)
-    .replace('{estadoVinculo}', couple.relationshipState)
-    .replace('{puntuacion}', couple.relationshipScore);
+  const prompt = SYSTEM_PROMPT_MASTER({
+    nombre1: couple.nameOne,
+    signo1: couple.signOne,
+    elemento1: couple.elementOne,
+    nombre2: couple.nameTwo,
+    signo2: couple.signTwo,
+    elemento2: couple.elementTwo,
+    estadoVinculo: couple.relationshipState,
+    puntuacion: couple.relationshipScore
+  });
 
   try {
     const response = await fetch(GEMINI_BACKEND_URL, {
@@ -171,24 +172,13 @@ async function generateAnalysis(couple) {
     return { text, mysticalPhrase: extractCanvasPhrase(text) };
   } catch (error) {
     console.warn(error.message);
-    return { text: getFallbackAnalysis(couple), mysticalPhrase: getMysticalPhrase(couple) };
+    throw error;
   }
-}
-
-function getFallbackAnalysis(couple) {
-  const friction = couple.compatibility.label === 'Desafío Alquímico de Alta Fricción';
-  return `LA ALQUIMIA DE LA LUZ\n${couple.signOne} (${couple.elementOne}) y ${couple.signTwo} (${couple.elementTwo}) combinan sus energías con un magnetismo singular. Cuando se reconocen como aliados, su presencia conjunta puede sentirse más grande que la suma de sus partes.\n\nEL ESPEJO DE LA SOMBRA\n${friction ? 'La fricción elemental puede encender choques de ego, deseo de control y silencios defensivos. Uno puede sentirse apagado y el otro invadido si intentan imponer su ritmo.' : 'El riesgo aparece cuando la costumbre reemplaza la curiosidad o cuando las expectativas no dichas se convierten en crítica.'}\n\nPACTO DE TRANSMUTACIÓN\nHablen de una necesidad concreta antes de juzgar la intención. Acuerden pausas, límites y una reparación verificable después de cada conflicto. El vínculo se fortalece cuando la intensidad se convierte en una práctica de escucha.\n\nPREDICCIÓN COSMOBIOLÓGICA A 30 DÍAS\nSemana 1: una conversación revela lo que estaba bajo la superficie.\nSemana 2: una decisión práctica exige límites claros.\nSemana 3: una colaboración devuelve movimiento al vínculo.\nSemana 4: un acuerdo cumplido muestra qué tiene raíces.\n\nFRASE MÍSTICA\n${getMysticalPhrase(couple)}`;
-}
-
-function getMysticalPhrase(couple) {
-  return couple.compatibility.label === 'Desafío Alquímico de Alta Fricción'
-    ? 'Donde chocan los elementos nace la transformación.'
-    : 'Dos cielos se encuentran cuando el amor aprende su propio ritmo.';
 }
 
 function extractCanvasPhrase(text) {
   const match = text.match(/(?:FRASE_CANVAS|FRASE MÍSTICA):\s*(.+)/i);
   return match
     ? match[1].trim().replace(/^[-*"“”]+|[-*"“”]+$/g, '')
-    : 'Dos cielos se encuentran cuando el amor aprende su propio ritmo.';
+    : '';
 }
