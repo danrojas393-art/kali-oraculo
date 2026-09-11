@@ -1,5 +1,4 @@
 const STRIPE_CHECKOUT_URL = "https:/buy.stripe.com/28E00l9XU0dD2hs5jM9k400";
-const GEMINI_BACKEND_URL = '/api/generate-synastry';
 const ACCESS_CODES = new Set(["KALI2026", "PRUEBA100"]);
 
 const form = document.querySelector('#synastry-form');
@@ -147,7 +146,7 @@ function getZodiacInfo(dateValue) {
 }
 
 async function generateAnalysis(couple) {
-  const prompt = SYSTEM_PROMPT_MASTER({
+  const promptGenerado = SYSTEM_PROMPT_MASTER({
     nombre1: couple.nameOne,
     signo1: couple.signOne,
     elemento1: couple.elementOne,
@@ -159,10 +158,10 @@ async function generateAnalysis(couple) {
   });
 
   try {
-    const response = await fetch(GEMINI_BACKEND_URL, {
+    const response = await fetch('/api/generate-synastry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt: promptGenerado })
     });
 
     if (!response.ok) throw new Error('El backend de Gemini respondió con un error.');
