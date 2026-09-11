@@ -21,7 +21,13 @@ app.post('/api/generate-synastry', async (req, res) => {
     const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 4096,
+          temperature: 0.7
+        }
+      })
     });
 
     const data = await response.json();

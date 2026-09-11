@@ -57,6 +57,17 @@
             <input id="date-two" name="dateTwo" type="date" required>
           </fieldset>
         </div>
+        <div class="relationship-state">
+          <label for="relationship-state">¿Cómo te sientes en tu vínculo actualmente?</label>
+          <select id="relationship-state" name="relationshipState" required>
+            <option value="" selected disabled>Selecciona el estado actual</option>
+            <option value="Excelente / Enamorados" data-score="9">Excelente / Enamorados (9-10)</option>
+            <option value="Bien / Estable" data-score="7">Bien / Estable (7-8)</option>
+            <option value="Regular / En proceso de cambio" data-score="5">Regular / En proceso de cambio (5-6)</option>
+            <option value="Distantes / En conflicto" data-score="3">Distantes / En conflicto (3-4)</option>
+            <option value="Mal / En crisis" data-score="1">Mal / En crisis (1-2)</option>
+          </select>
+        </div>
         <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
         <button class="primary-button" type="submit"><span>Generar sinastría</span><span aria-hidden="true">↗</span></button>
         <p class="privacy-note"><span aria-hidden="true">✦</span> Tus coordenadas se usan solo para esta lectura.</p>

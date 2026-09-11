@@ -1,5 +1,5 @@
 const STRIPE_CHECKOUT_URL = "https:/buy.stripe.com/28E00l9XU0dD2hs5jM9k400";
-const GEMINI_BACKEND_URL = 'http://localhost:3001/api/generate-synastry';
+const GEMINI_BACKEND_URL = '/api/generate-synastry';
 const ACCESS_CODES = new Set(["KALI2026", "PRUEBA100"]);
 
 const form = document.querySelector('#synastry-form');
@@ -22,6 +22,7 @@ form.addEventListener('submit', (event) => {
   const formData = Object.fromEntries(new FormData(form).entries());
   const firstZodiac = getZodiacInfo(formData.dateOne);
   const secondZodiac = getZodiacInfo(formData.dateTwo);
+  const relationshipOption = form.querySelector('#relationship-state').selectedOptions[0];
   if (!firstZodiac || !secondZodiac) {
     formError.textContent = 'Ingresa fechas de nacimiento válidas.';
     return;
@@ -32,7 +33,9 @@ form.addEventListener('submit', (event) => {
     elementOne: firstZodiac.element,
     signTwo: secondZodiac.sign,
     elementTwo: secondZodiac.element,
-    compatibility: getCompatibility(firstZodiac.element, secondZodiac.element)
+    relationshipState: formData.relationshipState,
+    relationshipScore: Number(relationshipOption.dataset.score),
+    compatibility: getCompatibility(firstZodiac.element, secondZodiac.element, Number(relationshipOption.dataset.score))
   };
   sessionStorage.setItem('kali-couple', JSON.stringify(storedState.couple));
   reading.classList.add('is-hidden');
@@ -99,7 +102,7 @@ function unlockReading(source) {
   });
 }
 
-function getCompatibility(first, second) {
+function getCompatibility(first, second, relationshipScore) {
   const bases = {
     'Fuego-Fuego': 78, 'Tierra-Tierra': 82, 'Aire-Aire': 80, 'Agua-Agua': 76,
     'Fuego-Aire': 74, 'Aire-Fuego': 74, 'Tierra-Agua': 72, 'Agua-Tierra': 72,
@@ -108,8 +111,9 @@ function getCompatibility(first, second) {
   };
   const pair = `${first}-${second}`;
   const friction = ['Fuego-Agua', 'Agua-Fuego', 'Tierra-Aire', 'Aire-Tierra'].includes(pair);
-  let score = bases[pair] || 50;
-  score = friction ? Math.max(35, Math.min(58, score)) : Math.max(35, Math.min(98, score));
+  const relationshipRanges = { 1: [35, 45], 3: [46, 55], 5: [60, 72], 7: [78, 88], 9: [89, 95] };
+  let score = relationshipScore ? Math.round((relationshipRanges[relationshipScore][0] + relationshipRanges[relationshipScore][1]) / 2) : bases[pair] || 50;
+  score = relationshipScore ? Math.max(relationshipRanges[relationshipScore][0], Math.min(relationshipRanges[relationshipScore][1], score + (friction ? -3 : 3))) : friction ? Math.max(35, Math.min(58, score)) : Math.max(35, Math.min(98, score));
   return { score, label: friction ? 'Desafío Alquímico de Alta Fricción' : score >= 78 ? 'Resonancia de Afinidad' : 'Alquimia en Construcción' };
 }
 
@@ -150,8 +154,8 @@ async function generateAnalysis(couple) {
     .replace('{fecha2}', couple.dateTwo)
     .replace('{signo2}', couple.signTwo)
     .replace('{elemento2}', couple.elementTwo)
-    .replace('{score}', couple.compatibility.score)
-    .replace('{label}', couple.compatibility.label);
+    .replace('{estadoVinculo}', couple.relationshipState)
+    .replace('{puntuacion}', couple.relationshipScore);
 
   try {
     const response = await fetch(GEMINI_BACKEND_URL, {

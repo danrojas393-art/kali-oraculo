@@ -10,6 +10,28 @@
 	display: none !important;
 }
 
+.relationship-state {
+	margin-top: 28px;
+	border-top: 1px solid rgba(255,255,255,.17);
+	padding-top: 20px;
+}
+
+.relationship-state label,
+.relationship-state select {
+	display: block;
+	width: 100%;
+}
+
+.relationship-state select {
+	margin-top: 8px;
+	padding: 13px 14px;
+	border: 1px solid rgba(255,255,255,.22);
+	border-radius: 4px;
+	background: var(--panel);
+	color: var(--ivory);
+	font: inherit;
+}
+
 #reading-copy {
 	margin: 0;
 	max-width: 680px;
