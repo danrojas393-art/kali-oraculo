@@ -98,8 +98,8 @@ function unlockReading(source) {
   generateAnalysis(couple).then((analysis) => {
     document.querySelector('#reading-copy').textContent = analysis.text;
     drawSynastryCard(document.querySelector('#share-card'), { ...couple, mysticalPhrase: analysis.mysticalPhrase });
-  }).catch(() => {
-    document.querySelector('#reading-copy').textContent = 'No fue posible obtener la lectura de Gemini. Inténtalo de nuevo.';
+  }).catch((error) => {
+    document.querySelector('#reading-copy').textContent = `No fue posible obtener la lectura de Gemini: ${error.message}`;
   });
 }
 
@@ -164,10 +164,13 @@ async function generateAnalysis(couple) {
       body: JSON.stringify({ prompt: promptGenerado })
     });
 
-    if (!response.ok) throw new Error('El backend de Gemini respondió con un error.');
-    const data = await response.json();
-    const text = data.text;
-    if (!text) throw new Error('Gemini no devolvió contenido.');
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `El backend de Gemini respondió con HTTP ${response.status}.`);
+    }
+
+    const text = typeof data.text === 'string' ? data.text.trim() : '';
+    if (!text) throw new Error('Gemini no devolvió contenido utilizable.');
     return { text, mysticalPhrase: extractCanvasPhrase(text) };
   } catch (error) {
     console.warn(error.message);

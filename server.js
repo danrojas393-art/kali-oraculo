@@ -5,9 +5,10 @@ const express = require('express');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-const GEMINI_FALLBACK_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
-const GEMINI_CURRENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+const apiKey = process.env.GEMINI_API_KEY?.trim();
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+
+console.log(`GEMINI_API_KEY configurada: ${Boolean(apiKey)}`);
 
 app.use((req, res, next) => {
   console.log(`[PETICIÓN ENTRANTE] ${req.method} ${req.url}`);
@@ -25,8 +26,12 @@ app.post('/api/generate-synastry', async (req, res) => {
       return res.status(400).json({ error: 'Se requiere un prompt válido.' });
     }
 
+    if (!apiKey) {
+      return res.status(503).json({ error: 'GEMINI_API_KEY no está configurada en el servidor.' });
+    }
+
     console.log('Iniciando llamada a Gemini...');
-    const requestOptions = {
+    const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -36,29 +41,45 @@ app.post('/api/generate-synastry', async (req, res) => {
           temperature: 0.7
         }
       })
-    };
+    });
 
-    let response = await fetch(GEMINI_URL, requestOptions);
-    if (response.status === 404) {
-      console.log('gemini-1.5-flash no está disponible; intentando gemini-1.5-pro...');
-      response = await fetch(GEMINI_FALLBACK_URL, requestOptions);
+    const responseBody = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseBody);
+    } catch {
+      data = {};
     }
-    if (response.status === 404) {
-      console.log('gemini-1.5-pro no está disponible; intentando gemini-3.6-flash...');
-      response = await fetch(GEMINI_CURRENT_URL, requestOptions);
-    }
-
-    const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.error?.message || 'Error en la API de Gemini.' });
+      const error = new Error(data.error?.message || `Gemini respondió con HTTP ${response.status}.`);
+      error.status = response.status;
+      error.body = responseBody;
+      throw error;
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.candidates
+      ?.flatMap((candidate) => candidate.content?.parts || [])
+      .map((part) => part.text)
+      .filter((partText) => typeof partText === 'string' && partText.trim())
+      .join('\n')
+      .trim();
+
+    if (!text) {
+      const error = new Error('Gemini respondió sin texto generado.');
+      error.status = 502;
+      error.body = responseBody;
+      throw error;
+    }
+
     return res.json({ text });
   } catch (error) {
     console.error('Error en servidor Gemini:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(error.status || 500).json({
+      error: error.message,
+      status: error.status || 500,
+      body: error.body || null
+    });
   }
 });
 
