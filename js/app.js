@@ -1,4 +1,3 @@
-const STRIPE_CHECKOUT_URL = "https:/buy.stripe.com/28E00l9XU0dD2hs5jM9k400";
 const ACCESS_CODES = new Set(["KALI2026", "PRUEBA100"]);
 
 const form = document.querySelector('#synastry-form');
@@ -9,9 +8,23 @@ const formError = document.querySelector('#form-error');
 const vipFeedback = document.querySelector('#vip-feedback');
 const reading = document.querySelector('#reading');
 const closePaywall = document.querySelector('#close-paywall');
+const retryReading = document.querySelector('#retry-reading');
 const storedState = { couple: JSON.parse(sessionStorage.getItem('kali-couple') || 'null') };
 
-stripeButton.href = STRIPE_CHECKOUT_URL;
+let stripeCheckoutPromise;
+
+stripeButton.addEventListener('click', async (event) => {
+  if (!stripeCheckoutPromise) {
+    event.preventDefault();
+    return;
+  }
+  event.preventDefault();
+  try {
+    window.location.href = await stripeCheckoutPromise;
+  } catch {
+    // El mensaje de error ya se muestra en el botón.
+  }
+});
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -39,6 +52,7 @@ form.addEventListener('submit', (event) => {
   sessionStorage.setItem('kali-couple', JSON.stringify(storedState.couple));
   reading.classList.add('is-hidden');
   openPaywall();
+  prepareStripeCheckout(storedState.couple);
 });
 
 vipForm.addEventListener('submit', (event) => {
@@ -68,13 +82,17 @@ document.querySelector('#download-card').addEventListener('click', () => {
   link.click();
 });
 
-// Stripe Checkout redirige al usuario al enlace configurado arriba. En producción,
-// Stripe debe volver a una URL de éxito como index.html?payment=success&session_id={CHECKOUT_SESSION_ID}.
-// Un backend debe verificar session_id antes de desbloquear contenido; nunca se valida solo en el navegador.
 const params = new URLSearchParams(window.location.search);
-if (params.get('payment') === 'success' && storedState.couple) {
-  unlockReading('STRIPE');
+const returnedSessionId = params.get('session_id');
+if (returnedSessionId) localStorage.setItem('kali-stripe-session-id', returnedSessionId);
+if (params.get('payment') === 'success' && storedState.couple && returnedSessionId) {
+  unlockReading('STRIPE', returnedSessionId);
 }
+
+retryReading.addEventListener('click', () => {
+  const sessionId = localStorage.getItem('kali-stripe-session-id');
+  if (sessionId && storedState.couple) unlockReading('STRIPE', sessionId);
+});
 
 function openPaywall() {
   paywall.classList.remove('is-hidden');
@@ -85,7 +103,29 @@ function closeModal() {
   paywall.classList.add('is-hidden');
 }
 
-function unlockReading(source) {
+async function prepareStripeCheckout(couple) {
+  stripeButton.textContent = 'Preparando pago...';
+  stripeButton.classList.add('is-disabled');
+  try {
+    stripeCheckoutPromise = fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ couple })
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.url) throw new Error(data.error || 'No fue posible preparar el pago.');
+      stripeButton.textContent = 'Desbloquear por $50 MXN ↗';
+      stripeButton.classList.remove('is-disabled');
+      return data.url;
+    });
+    await stripeCheckoutPromise;
+  } catch (error) {
+    stripeButton.textContent = error.message;
+    stripeButton.classList.remove('is-disabled');
+  }
+}
+
+function unlockReading(source, sessionId) {
   closeModal();
   const couple = storedState.couple;
   const names = `${couple.nameOne} & ${couple.nameTwo}`;
@@ -93,13 +133,15 @@ function unlockReading(source) {
   document.querySelector('#score').textContent = couple.compatibility.score;
   document.querySelector('#reading-combination').textContent = `${couple.elementOne} + ${couple.elementTwo} · ${couple.compatibility.label}`;
   document.querySelector('#reading-copy').textContent = 'Consultando la lectura cosmobiológica...';
+  retryReading.classList.add('is-hidden');
   reading.classList.remove('is-hidden');
   reading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  generateAnalysis(couple).then((analysis) => {
+  generateAnalysis(couple, sessionId).then((analysis) => {
     document.querySelector('#reading-copy').textContent = analysis.text;
     drawSynastryCard(document.querySelector('#share-card'), { ...couple, mysticalPhrase: analysis.mysticalPhrase });
   }).catch((error) => {
     document.querySelector('#reading-copy').textContent = `No fue posible obtener la lectura de Gemini: ${error.message}`;
+    retryReading.classList.remove('is-hidden');
   });
 }
 
@@ -145,7 +187,7 @@ function getZodiacInfo(dateValue) {
   return sign || { sign: 'Capricornio', element: 'Tierra' };
 }
 
-async function generateAnalysis(couple) {
+async function generateAnalysis(couple, sessionId) {
   const promptGenerado = SYSTEM_PROMPT_MASTER({
     nombre1: couple.nameOne,
     signo1: couple.signOne,
@@ -161,7 +203,7 @@ async function generateAnalysis(couple) {
     const response = await fetch('/api/generate-synastry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: promptGenerado })
+      body: JSON.stringify({ prompt: promptGenerado, session_id: sessionId || localStorage.getItem('kali-stripe-session-id') })
     });
 
     const data = await response.json().catch(() => ({}));
