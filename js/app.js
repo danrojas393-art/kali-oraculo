@@ -12,6 +12,7 @@ const retryReading = document.querySelector('#retry-reading');
 const storedState = { couple: JSON.parse(sessionStorage.getItem('kali-couple') || 'null') };
 
 let stripeCheckoutPromise;
+const REQUEST_TIMEOUT_MS = 30000;
 
 stripeButton.addEventListener('click', async (event) => {
   if (!stripeCheckoutPromise) {
@@ -199,11 +200,15 @@ async function generateAnalysis(couple, sessionId) {
     puntuacion: couple.relationshipScore
   });
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const response = await fetch('/api/generate-synastry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: promptGenerado, session_id: sessionId || localStorage.getItem('kali-stripe-session-id') })
+      body: JSON.stringify({ prompt: promptGenerado, session_id: sessionId || localStorage.getItem('kali-stripe-session-id') }),
+      signal: controller.signal
     });
 
     const data = await response.json().catch(() => ({}));
@@ -215,8 +220,13 @@ async function generateAnalysis(couple, sessionId) {
     if (!text) throw new Error('Gemini no devolvió contenido utilizable.');
     return { text, mysticalPhrase: extractCanvasPhrase(text) };
   } catch (error) {
-    console.warn(error.message);
-    throw error;
+    const message = error.name === 'AbortError'
+      ? 'La lectura tardó demasiado. Inténtalo de nuevo.'
+      : error.message || 'No fue posible conectar con el servidor.';
+    console.warn('Error generando la lectura:', error);
+    throw new Error(message);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

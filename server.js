@@ -11,6 +11,7 @@ const apiKey = process.env.GEMINI_API_KEY?.trim();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+const GEMINI_TIMEOUT_MS = 45000;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
@@ -96,6 +97,12 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 });
 
 app.use(express.json());
+app.use((error, req, res, next) => {
+  if (error instanceof SyntaxError && error.status === 400 && error.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'El cuerpo de la petición debe ser JSON válido.' });
+  }
+  return next(error);
+});
 app.use(express.static('.'));
 
 app.post('/api/create-checkout-session', async (req, res) => {
@@ -171,6 +178,8 @@ app.post('/api/generate-synastry', async (req, res) => {
     }
 
     console.log('Iniciando llamada a Gemini...');
+    const geminiController = new AbortController();
+    const geminiTimeoutId = setTimeout(() => geminiController.abort(), GEMINI_TIMEOUT_MS);
     const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -180,8 +189,10 @@ app.post('/api/generate-synastry', async (req, res) => {
           maxOutputTokens: 4096,
           temperature: 0.7
         }
-      })
+      }),
+      signal: geminiController.signal
     });
+    clearTimeout(geminiTimeoutId);
 
     const responseBody = await response.text();
     let data;
@@ -220,8 +231,9 @@ app.post('/api/generate-synastry', async (req, res) => {
     return res.json({ text });
   } catch (error) {
     console.error('Error en servidor Gemini:', error);
+    const isTimeout = error.name === 'AbortError';
     return res.status(error.status || 500).json({
-      error: error.message,
+      error: isTimeout ? 'La consulta a Gemini tardó demasiado.' : error.message || 'Error interno al generar la lectura.',
       status: error.status || 500,
       body: error.body || null
     });
