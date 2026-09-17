@@ -1,5 +1,17 @@
 require('dotenv').config();
 
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION:', error?.message || error);
+  console.error(error?.stack || 'Stack trace no disponible.');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason?.message || reason);
+  console.error(reason?.stack || 'Stack trace no disponible.');
+  process.exit(1);
+});
+
 const path = require('path');
 const express = require('express');
 const Stripe = require('stripe');
@@ -14,8 +26,19 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
 const GEMINI_TIMEOUT_MS = 45000;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 const pool = process.env.DATABASE_URL
-  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  ? new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000
+  })
   : null;
+
+if (pool) {
+  pool.on('error', (error) => {
+    console.error('Error inesperado del pool de PostgreSQL:', error.message);
+    console.error(error.stack || 'Stack trace no disponible.');
+  });
+}
 
 console.log(`GEMINI_API_KEY configurada: ${Boolean(apiKey)}`);
 console.log(`Stripe configurado: ${Boolean(stripeSecretKey)}`);
@@ -180,19 +203,23 @@ app.post('/api/generate-synastry', async (req, res) => {
     console.log('Iniciando llamada a Gemini...');
     const geminiController = new AbortController();
     const geminiTimeoutId = setTimeout(() => geminiController.abort(), GEMINI_TIMEOUT_MS);
-    const response = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 4096,
-          temperature: 0.7
-        }
-      }),
-      signal: geminiController.signal
-    });
-    clearTimeout(geminiTimeoutId);
+    let response;
+    try {
+      response = await fetch(GEMINI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 4096,
+            temperature: 0.7
+          }
+        }),
+        signal: geminiController.signal
+      });
+    } finally {
+      clearTimeout(geminiTimeoutId);
+    }
 
     const responseBody = await response.text();
     let data;
