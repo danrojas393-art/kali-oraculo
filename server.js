@@ -128,6 +128,10 @@ app.use((error, req, res, next) => {
 });
 app.use(express.static('.'));
 
+app.get('/ping', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.post('/api/create-checkout-session', async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'STRIPE_SECRET_KEY no está configurada en el servidor.' });
   const { couple } = req.body || {};

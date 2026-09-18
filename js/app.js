@@ -12,7 +12,12 @@ const retryReading = document.querySelector('#retry-reading');
 const storedState = { couple: JSON.parse(sessionStorage.getItem('kali-couple') || 'null') };
 
 let stripeCheckoutPromise;
-const REQUEST_TIMEOUT_MS = 30000;
+const REQUEST_TIMEOUT_MS = 90000;
+const SLOW_READING_NOTICE_MS = 12000;
+
+fetch('/ping', { cache: 'no-store' }).catch((error) => {
+  console.warn('No fue posible despertar el servidor:', error.message);
+});
 
 stripeButton.addEventListener('click', async (event) => {
   if (!stripeCheckoutPromise) {
@@ -202,6 +207,9 @@ async function generateAnalysis(couple, sessionId) {
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const slowNoticeId = setTimeout(() => {
+    document.querySelector('#reading-copy').textContent = 'Esto puede tardar hasta un minuto si el servidor estaba inactivo...';
+  }, SLOW_READING_NOTICE_MS);
 
   try {
     const response = await fetch('/api/generate-synastry', {
@@ -227,6 +235,7 @@ async function generateAnalysis(couple, sessionId) {
     throw new Error(message);
   } finally {
     clearTimeout(timeoutId);
+    clearTimeout(slowNoticeId);
   }
 }
 
